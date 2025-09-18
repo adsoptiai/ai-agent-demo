@@ -7,31 +7,31 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        project_id: ${{ secrets.GCP_PROJECT }}
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
-      with:
-        project_id: ${{ secrets.GCP_PROJECT }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
 
-    - name: Configure Docker for GCR
-      run: gcloud auth configure-docker
-
-    - name: Build and Push Docker image
+    - name: Enable APIs
       run: |
-        gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_SERVICE }}
+        gcloud services enable cloudbuild.googleapis.com
+        gcloud services enable run.googleapis.com
 
-    - name: Deploy to Cloud Run
+    - name: Build and Deploy
       run: |
         gcloud run deploy ${{ secrets.GCP_SERVICE }} \
-          --image gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_SERVICE }} \
+          --source . \
           --region ${{ secrets.GCP_REGION }} \
           --platform managed \
           --allow-unauthenticated \
           --port 8080 \
-          --memory 512Mi \
-          --max-instances 10
+          --memory 1Gi
