@@ -1,16 +1,26 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 import json
 
 app = FastAPI(title="AI Agent Demo", version="1.0.0")
 
+# 添加 CORS 中間件
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # 允許所有來源
+    allow_credentials=True,
+    allow_methods=["*"],  # 允許所有 HTTP 方法
+    allow_headers=["*"],  # 允許所有 Headers
+)
+
 class Question(BaseModel):
     question: str
 
 @app.get("/")
 async def root():
-    return {"message": "AI Agent API is running!"}
+    return {"message": "AI Agent API is running!", "status": "success"}
 
 @app.post("/ask")
 async def ask_agent(q: Question):
@@ -43,21 +53,21 @@ async def ask_agent(q: Question):
             )
             
             answer = completion.choices[0].message.content
-            return {"question": q.question, "answer": answer}
+            return {"question": q.question, "answer": answer, "status": "success"}
             
         except Exception as e:
-            return {"error": f"OpenAI API call failed: {str(e)}"}
+            return {"error": f"OpenAI API call failed: {str(e)}", "status": "error"}
     
     except Exception as e:
-        return {"error": f"Unexpected error: {str(e)}"}
+        return {"error": f"Unexpected error: {str(e)}", "status": "error"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {"status": "healthy", "service": "AI Agent Demo"}
 
 @app.post("/echo")
 async def echo(q: Question):
-    return {"question": q.question, "echo": f"You said: {q.question}"}
+    return {"question": q.question, "echo": f"You said: {q.question}", "status": "success"}
 
 @app.get("/debug")
 async def debug_info():
@@ -68,13 +78,28 @@ async def debug_info():
         import fastapi
         
         return {
-            "openai_version": openai.__version__,
-            "pydantic_version": pydantic.__version__,
-            "fastapi_version": fastapi.__version__,
-            "openai_api_key_configured": bool(os.getenv("OPENAI_API_KEY"))
+            "status": "success",
+            "versions": {
+                "openai": openai.__version__,
+                "pydantic": pydantic.__version__,
+                "fastapi": fastapi.__version__
+            },
+            "environment": {
+                "openai_api_key_configured": bool(os.getenv("OPENAI_API_KEY")),
+                "port": os.getenv("PORT", "8080")
+            }
         }
     except Exception as e:
-        return {"error": f"Debug info failed: {str(e)}"}
+        return {"error": f"Debug info failed: {str(e)}", "status": "error"}
+
+# 添加一個測試 CORS 的端點
+@app.get("/cors-test")
+async def cors_test():
+    return {
+        "message": "CORS is working!",
+        "timestamp": "2025-01-20",
+        "status": "success"
+    }
     
 if __name__ == "__main__":
     import uvicorn
