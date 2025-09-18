@@ -18,6 +18,9 @@ jobs:
         project_id: ${{ secrets.GCP_PROJECT }}
         service_account_key: ${{ secrets.GCP_SA_KEY }}
 
+    - name: Configure Docker for GCR
+      run: gcloud auth configure-docker
+
     - name: Build and Push Docker image
       run: |
         gcloud builds submit --tag gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_SERVICE }}
@@ -28,4 +31,7 @@ jobs:
           --image gcr.io/${{ secrets.GCP_PROJECT }}/${{ secrets.GCP_SERVICE }} \
           --region ${{ secrets.GCP_REGION }} \
           --platform managed \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --port 8080 \
+          --memory 512Mi \
+          --max-instances 10
