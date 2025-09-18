@@ -1,12 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import openai
 import os
 
 app = FastAPI(title="AI Agent Demo", version="1.0.0")
-
-# 設定 OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class Question(BaseModel):
     question: str
@@ -18,12 +14,14 @@ async def root():
 @app.post("/ask")
 async def ask_agent(q: Question):
     try:
-        if not openai.api_key:
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        if not openai_api_key:
             return {"error": "OpenAI API key not configured"}
         
-        # 使用新版本的 OpenAI API
+        # 使用正確的 OpenAI v1+ API
         from openai import OpenAI
-        client = OpenAI(api_key=openai.api_key)
+        
+        client = OpenAI(api_key=openai_api_key)
         
         response = client.chat.completions.create(
             model="gpt-3.5-turbo",
@@ -34,12 +32,19 @@ async def ask_agent(q: Question):
         answer = response.choices[0].message.content
         return {"question": q.question, "answer": answer}
     
+    except ImportError:
+        return {"error": "OpenAI package not properly installed"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+        return {"error": f"OpenAI API error: {str(e)}"}
 
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# 添加一個不需要 OpenAI 的測試端點
+@app.post("/echo")
+async def echo(q: Question):
+    return {"question": q.question, "echo": f"You said: {q.question}"}
     
 if __name__ == "__main__":
     import uvicorn
