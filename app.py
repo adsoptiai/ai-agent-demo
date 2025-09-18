@@ -18,18 +18,22 @@ async def ask_agent(q: Question):
         if not openai_api_key:
             return {"error": "OpenAI API key not configured"}
         
-        # 使用正確的 OpenAI v1+ API
+        # 使用最新的 OpenAI API
         from openai import OpenAI
         
         client = OpenAI(api_key=openai_api_key)
         
-        response = client.chat.completions.create(
+        # 使用 Chat Completions API（穩定版本）
+        completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": q.question}],
-            max_tokens=200
+            messages=[
+                {"role": "user", "content": q.question}
+            ],
+            max_tokens=200,
+            temperature=0.7
         )
         
-        answer = response.choices[0].message.content
+        answer = completion.choices[0].message.content
         return {"question": q.question, "answer": answer}
     
     except ImportError:
