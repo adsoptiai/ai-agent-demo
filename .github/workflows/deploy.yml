@@ -21,12 +21,7 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
 
-    - name: Enable APIs
-      run: |
-        gcloud services enable cloudbuild.googleapis.com
-        gcloud services enable run.googleapis.com
-
-    - name: Build and Deploy
+    - name: Build and Deploy to Cloud Run
       run: |
         gcloud run deploy ${{ secrets.GCP_SERVICE }} \
           --source . \
@@ -34,4 +29,5 @@ jobs:
           --platform managed \
           --allow-unauthenticated \
           --port 8080 \
-          --memory 1Gi
+          --memory 1Gi \
+          --timeout 300
